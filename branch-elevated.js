@@ -2,12 +2,11 @@
   // ELEVATED branch-spine — same procedural-SVG + GSAP ScrollTrigger engine as the
   // current one (so leaves stay ANCHORED to the real <li> steps and it reflows to any
   // height), but the motion is designed up to "signature":
-  //   1. idle pendulum sway on the whole branch (wind), origin at the base — pure SVG
-  //      transform, paused off-screen (IntersectionObserver), killed under reduced motion.
-  //   2. springy leaf unfurl (back-out overshoot) so reaching a step POPS its leaf.
-  //   3. luminous leading tip with a soft double trail that rides the growing end.
-  // No perpetual canvas loop; the growth itself is scroll-scrubbed (linear), the life is a
-  // few compositor-cheap transform tweens. Exposes window.mountBranchSpineElevated(loop,{reduced}).
+  //   1. springy leaf unfurl (back-out overshoot) so reaching a step POPS its leaf.
+  //   2. luminous leading tip with a soft double trail that rides the growing end.
+  //   3. all leaves seated on the RIGHT of the shaft (toward the content).
+  // No idle loop and no sway; the growth itself is scroll-scrubbed (linear), so there is
+  // nothing to pause off-screen. Exposes window.mountBranchSpineElevated(loop,{reduced}).
   var SVGNS = 'http://www.w3.org/2000/svg';
 
   window.mountBranchSpineElevated = function(loop, opts){
@@ -62,8 +61,6 @@
 
     svg.appendChild(defs);
 
-    // sway wrapper (gets the idle pendulum transform) > glow group > drawables
-    var sway = el('g', {});
     var g = el('g', { filter: 'url(#branchGlowE)' });
 
     var spine = el('path', {
@@ -83,11 +80,12 @@
     var tip    = el('circle', { r: 0, fill: 'url(#branchTipE)', opacity: 0 });
     g.appendChild(trail2); g.appendChild(trail1); g.appendChild(tip);
 
-    sway.appendChild(g);
-    svg.appendChild(sway);
+    svg.appendChild(g);
+    // idempotent: never stack a second branch if this mounts more than once
+    loop.querySelectorAll('svg.branch-spine').forEach(function(n){ n.remove(); });
     loop.insertBefore(svg, loop.firstChild);
 
-    var W = 0, H = 0, st = null, pts = [], swayTween = null, io = null;
+    var W = 0, H = 0, st = null, pts = [];
     var leafDefs = [];
 
     function centerline(gutter, amp){
@@ -166,9 +164,9 @@
         var r = lis[i].getBoundingClientRect();
         var cy = (r.top - loopTop) + r.height / 2;
         var t = Math.max(0.03, Math.min(0.985, cy / H));
-        var side = mobile ? 1 : (i % 2 === 0 ? 1 : -1);
         var P = pointAt(t);
         var len = Math.hypot(P.nx, P.ny) || 1, ux = P.nx / len, uy = P.ny / len;
+        var side = (ux < 0) ? -1 : 1;   // always seat the leaf on the RIGHT of the shaft
         var hw = halfWidth(t, wTop);
         var ox = P.x + ux * (hw + 2.5) * side, oy = P.y + uy * (hw + 2.5) * side;
         var angle = Math.atan2(uy * side, ux * side) * 180 / Math.PI - 12 * side;
@@ -201,8 +199,6 @@
       tip.setAttribute('r', tr);
       trail1.setAttribute('r', tr * 0.82);
       trail2.setAttribute('r', tr * 0.62);
-      // sway origin at the base of the branch (bottom of the gutter column)
-      if (gsap) gsap.set(sway, { transformOrigin: (gutter) + 'px ' + H + 'px' });
     }
 
     function smooth(x){ return x * x * (3 - 2 * x); }
@@ -239,16 +235,6 @@
       }
     }
 
-    function startSway(){
-      if (reduced || !gsap) return;
-      if (swayTween) return;
-      // gentle pendulum from the base — reads as wind, costs one transform tween
-      swayTween = gsap.fromTo(sway, { rotation: -0.9 }, {
-        rotation: 0.9, duration: 4.2, ease: 'sine.inOut', yoyo: true, repeat: -1
-      });
-    }
-    function stopSway(){ if (swayTween){ swayTween.kill(); swayTween = null; gsap.set(sway, { rotation: 0 }); } }
-
     function wire(){
       if (st){ st.kill(); st = null; }
       if (reduced || !ST){
@@ -270,15 +256,7 @@
       st = tween.scrollTrigger;
     }
 
-    function observe(){
-      if (reduced || !('IntersectionObserver' in window)) { startSway(); return; }
-      io = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){ e.isIntersecting ? startSway() : stopSway(); });
-      }, { threshold: 0.05 });
-      io.observe(loop);
-    }
-
-    build(); wire(); observe();
+    build(); wire();
 
     svg.__setProgress = function(off){
       spine.setAttribute('stroke-dashoffset', off);
