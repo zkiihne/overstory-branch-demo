@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Overstory — branch animation directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Source+Sans+3:wght@400;500;600&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canopy-deep:#0C1710; --pine:#1B3624; --leaf:#3F6E49; --moss:#8AA36C; --sun:#EDD98C;
+    --ink:#E4E8DA; --arcane:#8AA36C; --gold:#EDD98C; --muted:#9AB093; --rule:#22392B;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; color:var(--ink);
+    font-family:"Source Sans 3",system-ui,sans-serif;
+    background:linear-gradient(180deg,#08110B 0%,#0C1710 20%,#14241A 55%,#1B3624 82%,#22392B 100%);
+    background-attachment:fixed;
+  }
+  .bar{
+    position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
+    background:rgba(8,17,11,.72); border-bottom:1px solid var(--rule);
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    padding:12px 20px;
+  }
+  .bar h1{font-family:"Fraunces",serif; font-weight:600; font-size:16px; margin:0 16px 0 0; letter-spacing:.2px}
+  .seg{display:flex; gap:6px; flex-wrap:wrap}
+  .seg button{
+    font:500 13px/1 "Space Mono",monospace; letter-spacing:.02em;
+    color:var(--muted); background:transparent; border:1px solid var(--rule);
+    padding:8px 12px; border-radius:999px; cursor:pointer; transition:.18s;
+  }
+  .seg button:hover{color:var(--ink); border-color:var(--moss)}
+  .seg button[aria-selected="true"]{color:var(--canopy-deep); background:var(--moss); border-color:var(--moss)}
+  .hint{margin-left:auto; color:var(--muted); font:400 12px/1.4 "Space Mono",monospace}
+
+  .stage{max-width:820px; margin:0 auto; padding:0 24px}
+  .panel{display:none}
+  .panel.active{display:block}
+
+  /* method section context, matched to Overstory */
+  section.method{position:relative; overflow:hidden; padding:120px 0 80px}
+  .eyebrow{font:700 11px/1 "Space Mono",monospace; letter-spacing:.18em; color:var(--arcane); text-transform:uppercase}
+  section.method h2{font-family:"Fraunces",serif; font-weight:600; font-size:clamp(30px,5vw,46px); margin:14px 0 8px}
+  .lede{color:var(--muted); font-size:17px; max-width:46ch; margin:0 0 8px}
+  .loop{list-style:none; padding:0; margin:36px 0 4px; position:relative}
+  .loop li{position:relative; z-index:1; padding:20px 0 20px 120px; border-top:1px solid var(--rule)}
+  .loop li:last-child{border-bottom:1px solid var(--rule)}
+  .loop .when{display:block; color:var(--arcane); font:400 11px/1 "Space Mono",monospace; letter-spacing:.1em; margin-bottom:6px; text-transform:uppercase}
+  .loop .step{display:block; font-family:"Fraunces",serif; font-size:22px; font-weight:600; margin-bottom:4px}
+  .loop .desc{color:var(--muted); margin:0; font-size:16px; line-height:1.45}
+
+  /* the branch overlay — absolutely placed in the loop gutter */
+  svg.branch-spine{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; overflow:visible}
+
+  .spacer{height:70vh}
+
+  /* Rive / Lottie explanatory panels */
+  .card{margin:110px auto 90px; max-width:640px; background:rgba(143,160,106,.05); border:1px solid var(--rule); border-radius:16px; padding:28px}
+  .card h2{font-family:"Fraunces",serif; font-weight:600; font-size:28px; margin:0 0 4px}
+  .card p{color:var(--muted); font-size:15px; line-height:1.55}
+  .tag{display:inline-block; font:700 10px/1 "Space Mono",monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--canopy-deep); background:var(--sun); padding:5px 8px; border-radius:6px; margin-bottom:14px}
+  .tradeoff{border-left:2px solid var(--moss); padding-left:14px; margin:16px 0}
+  .tradeoff b{color:var(--ink)}
+  .card a.btn{display:inline-block; margin-top:8px; color:var(--canopy-deep); background:var(--moss); text-decoration:none; font:600 13px/1 "Source Sans 3"; padding:10px 16px; border-radius:999px}
+  #rive-canvas{display:block; width:100%; max-width:420px; height:260px; margin:18px auto 6px; background:rgba(0,0,0,.15); border-radius:12px}
+  .note{color:var(--arcane); font:400 12px/1.5 "Space Mono",monospace}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <h1>Overstory · branch directions</h1>
+    <div class="seg" role="tablist">
+      <button role="tab" data-p="current"  aria-selected="true">Current</button>
+      <button role="tab" data-p="elevated" aria-selected="false">Elevated GSAP</button>
+      <button role="tab" data-p="rive"     aria-selected="false">Rive</button>
+      <button role="tab" data-p="lottie"   aria-selected="false">Lottie</button>
+    </div>
+    <span class="hint">scroll down to grow the branch ↓</span>
+  </div>
+
+  <div class="stage">
+    <!-- CURRENT -->
+    <div class="panel active" data-panel="current">
+      <section class="method" id="loop-current-wrap">
+        <span class="eyebrow">02 / The method</span>
+        <h2>The method</h2>
+        <p class="lede">Two weeks, five moves. The branch grows one leaf per step as you scroll.</p>
+        <ol class="loop" id="loop-current"></ol>
+      </section>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- ELEVATED -->
+    <div class="panel" data-panel="elevated">
+      <section class="method" id="loop-elevated-wrap">
+        <span class="eyebrow">02 / The method</span>
+        <h2>The method</h2>
+        <p class="lede">Same engine + DOM-anchored leaves — now with idle wind sway, a springy leaf pop, and a luminous tip trail.</p>
+        <ol class="loop" id="loop-elevated"></ol>
+      </section>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- RIVE -->
+    <div class="panel" data-panel="rive">
+      <div class="card">
+        <span class="tag">Runtime feel · not your branch</span>
+        <h2>Rive</h2>
+        <p>GPU-accelerated vector via a custom renderer, driven by a <b>state machine</b>. On the web you bind a numeric input (scroll progress 0–100) to blend/scrub a designer-authored growth timeline — buttery, 60fps, minimal CPU.</p>
+        <canvas id="rive-canvas"></canvas>
+        <p class="note">↑ Rive's canonical demo asset, rendered live by the Rive runtime, to show its rendering character. A real branch would be authored in the Rive editor.</p>
+        <div class="tradeoff">
+          <p><b>Upgrade:</b> designer-authored organic growth, GPU rendering, state-machine logic.<br>
+          <b>Cost:</b> the 5 leaves become <b>baked at fixed positions</b>, not anchored to your live step DOM; needs a <code>.riv</code> authored in the Rive editor.</p>
+        </div>
+        <a class="btn" href="https://rive.app/marketplace/798-1554-tree-demo/" target="_blank" rel="noopener">See a real Rive tree ↗</a>
+      </div>
+    </div>
+
+    <!-- LOTTIE -->
+    <div class="panel" data-panel="lottie">
+      <div class="card">
+        <span class="tag">Baked art · not your branch</span>
+        <h2>Lottie</h2>
+        <p>Plays back After-Effects vector art as JSON. Scrubbable via the player API, ships fast — but it's a <b>fixed canvas</b>: it can't anchor leaves to your live step DOM or reflow to arbitrary section height, which is the whole trick of the current branch.</p>
+        <div class="tradeoff">
+          <p><b>Upgrade:</b> designer paints it in After Effects; painterly detail cheap to ship.<br>
+          <b>Cost:</b> <b>no DOM anchoring</b>, no reflow, needs an authored <code>.json</code> (After Effects + the Lottie generator skill). A downgrade in integration for this specific effect.</p>
+        </div>
+        <a class="btn" href="https://lottiefiles.com/free-animations/plant-growing" target="_blank" rel="noopener">See real Lottie plant growth ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+  <script src="branch-current.js"></script>
+  <script src="branch-elevated.js"></script>
+  <script src="https://unpkg.com/@rive-app/canvas@2.21.6"></script>
+  <script>
+    var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var STEPS = [
+      ['Days 1–2','Sit','Watch the people who do the work.'],
+      ['Days 3–4','Diagnose','Find the real problem. Usually not the one you asked about.'],
+      ['Days 5–9','Build','A lasting fix, not a demo.'],
+      ['Days 10–12','Hand off','Docs, a walkthrough, light support. You own it.'],
+      ['Day 14','Leave','Two weeks, not nine months.']
+    ];
+    function fillLoop(id){
+      var ol = document.getElementById(id);
+      ol.innerHTML = STEPS.map(function(s){
+        return '<li><span class="when">'+s[0]+'</span><span class="step">'+s[1]+'</span><p class="desc">'+s[2]+'</p></li>';
+      }).join('');
+    }
+    fillLoop('loop-current'); fillLoop('loop-elevated');
+
+    var mounted = { current:false, elevated:false, rive:false };
+    function killTriggers(){ if (window.ScrollTrigger) ScrollTrigger.getAll().forEach(function(t){ t.kill(); }); }
+
+    function mount(panel){
+      if (panel === 'current' && !mounted.current){
+        window.mountBranchSpine(document.getElementById('loop-current'), { reduced:REDUCED }); mounted.current = true;
+      }
+      if (panel === 'elevated' && !mounted.elevated){
+        window.mountBranchSpineElevated(document.getElementById('loop-elevated'), { reduced:REDUCED }); mounted.elevated = true;
+      }
+      if (panel === 'rive' && !mounted.rive){
+        try{
+          new rive.Rive({
+            src:'https://cdn.rive.app/animations/vehicles.riv',
+            canvas:document.getElementById('rive-canvas'),
+            autoplay:true, stateMachines:'bumpy',
+            onLoad:function(){ /* fit */ }
+          });
+        }catch(e){}
+        mounted.rive = true;
+      }
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
+    }
+
+    function show(panel){
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.toggle('active', p.dataset.panel === panel); });
+      document.querySelectorAll('.seg button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.p === panel); });
+      window.scrollTo(0,0);
+      killTriggers();
+      mounted.current = mounted.elevated = false;   // remount so triggers rebind to visible panel
+      mount(panel);
+    }
+    document.querySelectorAll('.seg button').forEach(function(b){
+      b.addEventListener('click', function(){ show(b.dataset.p); });
+    });
+
+    mount('current');
+  </script>
+</body>
+</html>
