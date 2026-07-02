@@ -46,11 +46,16 @@ one leaf per step (5 steps: Sit → Diagnose → Build → Hand off → Leave).
    either add `export VERCEL_TOKEN=...` to `~/.zshenv` (then import the repo via REST API), OR import
    `zkiihne/overstory-branch-demo` once in the Vercel dashboard (New Project → import → Deploy).
    (Not required — Pages already works for review.)
-2. **REAL integration still pending**: locate the actual Overstory source repo (NOT found on this machine
-   by name; suspected to be `~/projects/ai-foundation` rebranded, but that lookup was interrupted/unverified).
-   Once found: replace its `branch-spine.js` with `branch-elevated.js` (rename the mount call
-   `mountBranchSpineElevated` → whatever the site calls, or swap the file and keep the `mountBranchSpine`
-   name), then deploy the real site to Vercel (`vercel --prod` ships the working tree; also commit).
+2. **REAL integration — source located (CONFIRMED):** `~/projects/ai-foundation/overstory/`
+   (NOT git-tracked). Live site overstory-six.vercel.app is served from this folder.
+   - `index.html` line 784: `<script src="branch-spine.js"></script>`
+   - `index.html` line ~790: `window.mountBranchSpine(loop, { reduced: reduced });`
+   - **Port steps:** copy `branch-elevated.js` over `~/projects/ai-foundation/overstory/branch-spine.js`,
+     BUT rename its exported fn `window.mountBranchSpineElevated` → `window.mountBranchSpine` so index.html
+     needs no change. (Its SVG IDs are already `...E`-suffixed, so no clash.) Keep `forest.js` untouched.
+   - **Deploy:** `cd ~/projects/ai-foundation/overstory && vercel --prod` (ships working tree). No CLI in the
+     agent session, so this is a user step or needs VERCEL_TOKEN. ai-foundation is not git-tracked — consider
+     `git init` if you want history.
 
 ## To resume in a new chat, say:
 "Continue the Overstory branch redo — read HANDOFF.md in the overstory-branch-demo repo. Elevated GSAP is
